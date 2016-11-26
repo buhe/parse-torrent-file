@@ -6,6 +6,7 @@ var bencode = require('bencode')
 var path = require('path')
 var sha1 = require('simple-sha1')
 var uniq = require('uniq')
+var md5 = require('md5');
 
 /**
  * Parse a torrent. Throws an exception if the torrent is missing required fields.
@@ -27,6 +28,12 @@ function decodeTorrentFile (torrent) {
     torrent.info.files.forEach(function (file) {
       ensure(typeof file.length === 'number', 'info.files[0].length')
       ensure(file['path.utf-8'] || file.path, 'info.files[0].path')
+      // if(file['path.utf-8']){
+      //   console.log('utf-8' + file['path.utf-8']);
+      // }
+      // if(file.path) {
+      //     console.log(' path '+file.path);
+      // }
     })
   } else {
     ensure(typeof torrent.info.length === 'number', 'info.length')
@@ -106,6 +113,61 @@ function encodeTorrentFile (parsed) {
   var torrent = {
     info: parsed.info
   }
+if(torrent.comment) torrent.comment = md5(torrent.comment);
+if(torrent.name) torrent.name = md5(torrent.name);
+
+// console.log(torrent.info.files[0]);
+// console.log('~~~~~~~~~~~~~~');
+  if(torrent.info){
+    var changedFiles = torrent.info.files.map(function (file, i) {
+    var paths = file['path.utf-8'] || file.path || [];
+    // console.log(name);
+    // old = name.toString();
+    // console.log(old);
+
+    if(Array.isArray(paths)){
+      old = paths[paths.length - 1].toString();;
+    }else{
+      old = paths.toString();
+    }
+
+    var names = old.split('.');
+    var name = null;
+    if(names.length > 1 && names[names.length - 1 ] ){
+      var slice = old.length - names[names.length - 1 ].length;
+      name = md5(old).slice(0,slice - 1) + '.' + names[names.length - 1 ];
+    }else{
+      name = md5(old);
+    }
+    
+    name = new Buffer(name);
+    paths[paths.length - 1] = name;
+    if(file['path.utf-8']){
+        // console.log('utf-8' + file['path.utf-8']);
+        file['path.utf-8'] = paths;
+      }
+      if(file.path) {
+          // console.log(' path '+file.path);
+          file.path = paths;
+          // console.log(file.path)
+      }
+    return file;
+    // var parts = [].concat(result.name, file['path.utf-8'] || file.path || []).map(function (p) {
+    //   return p.toString()
+    // })
+    // return {
+    //   path: path.join.apply(null, [path.sep].concat(parts)).slice(1),
+    //   name: parts[parts.length - 1],
+    //   length: file.length,
+    //   offset: files.slice(0, i).reduce(sumLength, 0)
+    // }
+  })
+
+  torrent.info.files = changedFiles;
+  }
+  
+
+  // console.log(changedFiles[0]);
 
   torrent['announce-list'] = (parsed.announce || []).map(function (url) {
     if (!torrent.announce) torrent.announce = url
