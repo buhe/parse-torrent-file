@@ -1,5 +1,5 @@
 {
-  "name": "parse-torrent-file-fork",
+  "name": "parse-torrent-file",
   "description": "Parse a .torrent file and return an object of keys/values",
   "version": "4.0.0",
   "author": {
